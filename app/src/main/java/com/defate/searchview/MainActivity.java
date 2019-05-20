@@ -2,9 +2,16 @@ package com.defate.searchview;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
 import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.TextView;
 
 import com.jakewharton.rxbinding3.widget.RxTextView;
 
@@ -19,13 +26,12 @@ import io.reactivex.functions.Consumer;
 
 
 public class MainActivity extends AppCompatActivity {
-
     EditText edit_view;
+    ListView mListView;
     List<ItemEntity> dateList = new ArrayList<>();
-
     List<ItemEntity> valueList = new ArrayList<>();
-
     DefaultFuzzySearchRule mIFuzzySearchRule;
+    SearchAdapter searchAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,8 +40,9 @@ public class MainActivity extends AppCompatActivity {
         edit_view = findViewById(R.id.edit_view);
         dateList = fillData(getResources().getStringArray(R.array.region));
         mIFuzzySearchRule = new DefaultFuzzySearchRule();
-
-
+        mListView = findViewById(R.id.mListView);
+        searchAdapter = new SearchAdapter(valueList, this);
+        mListView.setAdapter(searchAdapter);
         RxTextView.textChanges(edit_view)
                 .debounce (1, TimeUnit.SECONDS).skip(1)
                 .observeOn(AndroidSchedulers.mainThread())
@@ -48,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onNext(CharSequence charSequence) {
+                        valueList.clear();
                         if (TextUtils.isEmpty(charSequence)) {
 
                         } else {
@@ -57,7 +65,14 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }
                         }
-                        System.out.println(valueList);
+//                        for(int i = 0; i < valueList.size(); i--){
+                            System.out.println("搜索到了数据 ="+valueList.size());
+//                        }
+//                        for (ItemEntity item : valueList) {
+//                            System.out.println(item.getValue());
+//                        }
+                        searchAdapter.notifyDataSetChanged();
+//                        System.out.println(valueList);
                     }
 
                     @Override
@@ -93,6 +108,51 @@ public class MainActivity extends AppCompatActivity {
             sortList.add(new ItemEntity(item, letter, pinyinList));
         }
         return sortList;
+    }
 
+    class SearchAdapter extends BaseAdapter{
+        List<ItemEntity> valueList = new ArrayList<>();
+        Context context;
+        SearchAdapter( List<ItemEntity> valueList, Context context){
+            this.valueList = valueList;
+            this.context = context;
+        }
+
+        @Override
+        public int getCount() {
+            return valueList.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return valueList.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            HolderView holderView;
+            if (convertView == null) {
+                holderView = new HolderView();
+                convertView = LayoutInflater.from(context).inflate(R.layout.item_view, null);
+                convertView.setTag(holderView);
+            } else {
+                holderView = (HolderView) convertView.getTag();
+            }
+            holderView.mytest = convertView.findViewById(R.id.item_txt);
+            ItemEntity data = valueList.get(position);
+            if (data != null) {
+                holderView.mytest.setText(data.getValue());
+            }
+            return convertView;
+        }
+
+        class HolderView{
+            TextView mytest;
+        }
     }
 }
